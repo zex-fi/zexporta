@@ -20,7 +20,7 @@ uv-sync:
 # Install pre-commit hooks
 pre-commit-install:
 	@echo "Installing pre-commit hooks..."
-	$(PRE_COMMIT) install && $(PRE_COMMIT) install --hook-type commit-msg
+	$(PRE_COMMIT) install && $(PRE_COMMIT) install --hook-type pre-push
 
 # Run pre-commit hooks on all files
 pre-commit-run:
