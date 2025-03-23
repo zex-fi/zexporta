@@ -57,9 +57,25 @@ services:
     entrypoint: python -m zexporta.bots.monitoring.main
     networks:
       zexporta_custom_network:
-        ipv4_address: 172.20.0.13
     volumes:
       - /var/log/zexporta/bot_monitoring/:/var/log/bot_monitoring/
+    env_file:
+      - .env.prod
+
+  bot-transfer-test-token:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zexporta
+    container_name: transfer-test-token-bot
+    entrypoint: python -m zexporta.bots.transfer_test_token.main
+    networks:
+      zexporta_custom_network:
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - /var/log/zexporta/transfer_test_token_bot/:/var/log/transfer_test_token_bot/
     env_file:
       - .env.prod
 
