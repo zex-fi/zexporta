@@ -1,10 +1,11 @@
 import asyncio
 from typing import Iterable
 
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 
 from zexporta.custom_types import (
     ChainConfig,
+    UserId,
     WithdrawRequest,
     WithdrawStatus,
 )
@@ -55,8 +56,8 @@ async def upsert_withdraws(withdraws: list[WithdrawRequest]):
 
 
 async def find_withdraws_by_status(
-    status: WithdrawStatus,
     chain: ChainConfig,
+    status: WithdrawStatus,
     nonce: int = 0,
 ) -> list[WithdrawRequest]:
     res = []
@@ -67,6 +68,24 @@ async def find_withdraws_by_status(
     }
 
     async for record in get_collection().find(query, sort={"nonce": ASCENDING}):
+        res.append(chain.withdraw_request_type(**record))
+    return res
+
+
+async def find_user_withdraws(
+    chain: ChainConfig,
+    user_id: UserId,
+    status: WithdrawStatus | None,
+) -> list[WithdrawRequest]:
+    res = []
+    query = {
+        "chain_symbol": chain.chain_symbol,
+        "user_id": user_id,
+    }
+    if status is not None:
+        query["status"] = status
+
+    async for record in get_collection().find(query, sort={"nonce": DESCENDING}):
         res.append(chain.withdraw_request_type(**record))
     return res
 

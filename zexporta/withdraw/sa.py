@@ -146,7 +146,7 @@ async def withdraw(chain: EVMConfig):
             account = w3.eth.account.from_key(EVM_WITHDRAWER_PRIVATE_KEY)
 
             dkg_party = dkg_key["party"]
-            withdraws_requests = await find_withdraws_by_status(WithdrawStatus.PENDING, chain)
+            withdraws_requests = await find_withdraws_by_status(chain, WithdrawStatus.PENDING)
             if len(withdraws_requests) == 0:
                 _logger.debug(f"No {WithdrawStatus.PENDING.value} has been found to process ...")
                 continue
