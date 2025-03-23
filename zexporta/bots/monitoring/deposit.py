@@ -56,7 +56,7 @@ async def monitor_deposit(async_client: httpx.AsyncClient, chain: EVMConfig, log
     else:
         raise DepositError("Transaction failed.")
 
-    await asyncio.sleep(30)  # wait until deposit store in zex
+    await asyncio.sleep(60)  # wait until deposit store in zex
 
     balance_after = await get_user_balance(async_client, TEST_USER_ID, monitoring_token.symbol)
     logger.info(f"Balance after deposit: {balance_after}")

@@ -62,6 +62,23 @@ services:
     env_file:
       - .env.dev
 
+  deposit-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.dev
+    entrypoint: ["gunicorn", "zexporta.api.app:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+    image: zexporta
+    container_name: deposit-api
+    networks:
+      zexporta_custom_network:
+        ipv4_address: 172.20.0.15
+    depends_on:
+      - mongodb
+
   deposit-sa:
     build:
       context: .
