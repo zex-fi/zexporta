@@ -3,9 +3,10 @@ from functools import lru_cache
 from typing import Iterable, overload
 
 from clients import Transfer
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 
 from zexporta.custom_types import (
+    Address,
     BlockNumber,
     BTCConfig,
     BTCTransfer,
@@ -89,13 +90,13 @@ async def find_deposit_by_status(
 
 
 async def find_deposit_by_status(
-    chain,
-    status,
-    from_block=None,
-    to_block=None,
-    limit=None,
-    txs_hash=None,
-):
+    chain: ChainConfig,
+    status: DepositStatus,
+    from_block: BlockNumber | None = None,
+    to_block: BlockNumber | None = None,
+    limit: int | None = None,
+    txs_hash: list[TxHash] | None = None,
+) -> list[Deposit]:
     collection = get_collection(chain)
     res = []
     block_number_query = {"$gte": from_block or 0}
@@ -116,6 +117,25 @@ async def find_deposit_by_status(
         res.append(Deposit(transfer=transfer, **record))
         if limit and len(record) >= limit:
             break
+    return res
+
+
+async def find_address_deposits(
+    chain: ChainConfig, address: Address, status: DepositStatus | None = None
+) -> list[Deposit]:
+    collection = get_collection(chain)
+    res = []
+    query = {
+        "transfer.chain_symbol": chain.chain_symbol,
+        "transfer.to": address,
+    }
+    if status is not None:
+        query["status"] = status.value
+
+    async for record in collection.find(query, sort={"transfer.block_number": DESCENDING}):
+        transfer = chain.transfer_class(**record["transfer"])
+        del record["transfer"]
+        res.append(Deposit(transfer=transfer, **record))
     return res
 
 

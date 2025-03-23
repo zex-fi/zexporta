@@ -103,7 +103,7 @@ async def monitor_withdraw(async_client: httpx.AsyncClient, chain: EVMConfig, lo
     logger.debug(tx + signed_data)
     send_data = (tx + signed_data).decode("latin-1")
     await send_withdraw_request(async_client, [send_data])
-    await asyncio.sleep(120)
+    await asyncio.sleep(240)
     balance_after = await get_ERC20_balance(
         w3,
         contract_address=monitoring_token.address,
