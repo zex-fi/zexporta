@@ -1,20 +1,17 @@
 import asyncio
 import json
-import logging
 import logging.config
+from typing import cast
 
 import sentry_sdk
 import web3.exceptions
-from clients.evm import get_signed_data
-from clients.evm.client import get_evm_async_client
-from eth_account.signers.local import LocalAccount
-from eth_typing import ChecksumAddress
+from clients import BTCConfig, ChainConfig, WithdrawRequest
+from clients.btc.custom_types import BTCWithdrawRequest
+from clients.evm.custom_types import EVMWithdrawRequest
 from pyfrost.network.sa import SA
-from web3 import AsyncWeb3, Web3
 
 from zexporta.custom_types import (
     EVMConfig,
-    EVMWithdrawRequest,
     WithdrawStatus,
 )
 from zexporta.db.withdraw import find_withdraws_by_status, upsert_withdraw
@@ -27,15 +24,15 @@ from zexporta.utils.node_info import NodesInfo
 from zexporta.utils.zex_api import (
     ZexAPIError,
 )
+from zexporta.withdraw.btc import send_btc_withdraw
+from zexporta.withdraw.evm import send_evm_withdraw
 
 from .config import (
     CHAINS_CONFIG,
     DKG_JSON_PATH,
     DKG_NAME,
-    EVM_WITHDRAWER_PRIVATE_KEY,
     LOGGER_PATH,
     SA_DELAY_SECOND,
-    SA_SHIELD_PRIVATE_KEY,
     SA_TIMEOUT,
     SENTRY_DNS,
 )
@@ -58,93 +55,76 @@ dkg_key = parse_dkg_json(DKG_JSON_PATH, DKG_NAME)
 
 
 async def check_validator_data(
-    zex_withdraw: EVMWithdrawRequest,
+    chain: ChainConfig,
+    zex_withdraw: WithdrawRequest,
     validator_hash: str,
 ):
-    withdraw_hash = get_evm_withdraw_hash(zex_withdraw)
+    match chain:
+        case EVMConfig():
+            withdraw_hash = get_evm_withdraw_hash(zex_withdraw)  # type: ignore
+        case BTCConfig():
+            # todo :: fix in distributed signing version
+            withdraw_hash = validator_hash
+        case _:
+            raise NotImplementedError
+
     if withdraw_hash != validator_hash:
         raise WithdrawDifferentHashError(f"validator_hash: {validator_hash}, withdraw_hash: {withdraw_hash}")
 
 
 async def process_withdraw_sa(
-    w3: AsyncWeb3,
-    account: LocalAccount,
-    chain: EVMConfig,
-    withdraw_request: EVMWithdrawRequest,
+    chain: ChainConfig,
+    withdraw_request: WithdrawRequest,
     dkg_party,
     logger: ChainLoggerAdapter,
 ):
-    nonces_response = await sa.request_nonces(dkg_party, number_of_nonces=1)
-    nonces_for_sig = {}
-    for id, nonce in nonces_response.items():
-        nonces_for_sig[id] = nonce["data"][0]
+    # todo :: fix in distributed signing version
+    match chain:
+        case EVMConfig():
+            nonces_response = await sa.request_nonces(dkg_party, number_of_nonces=1)
+            nonces_for_sig = {}
+            for id, nonce in nonces_response.items():
+                nonces_for_sig[id] = nonce["data"][0]
 
-    data = {
-        "method": "withdraw",
-        "data": {
-            "chain_symbol": chain.chain_symbol,
-            "sa_withdraw_nonce": withdraw_request.nonce,
-        },
-    }
-    logger.debug(f"Zex withdraw request is: {withdraw_request}")
-    result = await sa.request_signature(dkg_key, nonces_for_sig, data, dkg_party)
-    logger.debug(f"Validator results is: {result}")
+            data = {
+                "method": "withdraw",
+                "data": {
+                    "chain_symbol": chain.chain_symbol,
+                    "sa_withdraw_nonce": withdraw_request.nonce,
+                },
+            }
+            logger.debug(f"Zex withdraw request is: {withdraw_request}")
+            result = await sa.request_signature(dkg_key, nonces_for_sig, data, dkg_party)
+            logger.debug(f"Validator results is: {result}")
 
-    if result.get("result") == "SUCCESSFUL":
-        validator_hash = result["message_hash"]
-        await check_validator_data(zex_withdraw=withdraw_request, validator_hash=validator_hash)
-        data = list(result["signature_data_from_node"].values())[0]
-        await send_withdraw(
-            w3,
-            chain,
-            account,
-            result["signature"],
-            withdraw_request,
-            Web3.to_checksum_address(result["nonce"]),
-            logger,
-        )
-    else:
-        raise ValidatorResultError(result)
+            if result.get("result") == "SUCCESSFUL":
+                validator_hash = result["message_hash"]
+                await check_validator_data(chain=chain, zex_withdraw=withdraw_request, validator_hash=validator_hash)
+                await send_evm_withdraw(
+                    cast(EVMConfig, chain),
+                    cast(EVMWithdrawRequest, withdraw_request),
+                    result,
+                    logger,
+                )
+            else:
+                raise ValidatorResultError(result)
 
-
-async def send_withdraw(
-    w3: AsyncWeb3,
-    chain: EVMConfig,
-    account: LocalAccount,
-    signature: str,
-    withdraw_request: EVMWithdrawRequest,
-    signature_nonce: ChecksumAddress,
-    logger: logging.Logger | ChainLoggerAdapter = logger,
-):
-    vault = w3.eth.contract(address=Web3.to_checksum_address(chain.vault_address), abi=VAULT_ABI)
-    nonce = await w3.eth.get_transaction_count(account.address)
-    withdraw_hash = get_evm_withdraw_hash(withdraw_request)
-    signed_data = get_signed_data(SA_SHIELD_PRIVATE_KEY, hexstr=withdraw_hash)
-    logger.debug(f"Signed Withdraw data is: {signed_data}")
-    tx = await vault.functions.withdraw(
-        withdraw_request.token_address,
-        withdraw_request.amount,
-        withdraw_request.recipient,
-        withdraw_request.nonce,
-        signature,
-        signature_nonce,
-        signed_data,
-    ).build_transaction({"from": account.address, "nonce": nonce})
-    signed_tx = account.sign_transaction(tx)
-    tx_hash = await w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-    withdraw_request.tx_hash = tx_hash.hex()
-    await w3.eth.wait_for_transaction_receipt(tx_hash)
-    logger.info(f"Method called successfully. Transaction Hash: {tx_hash.hex()}")
+        case BTCConfig():
+            await send_btc_withdraw(
+                cast(BTCConfig, chain),
+                cast(BTCWithdrawRequest, withdraw_request),
+                {},
+                logger,
+            )
+        case _:
+            raise NotImplementedError
 
 
-async def withdraw(chain: EVMConfig):
+async def withdraw(chain: ChainConfig):
     _logger = ChainLoggerAdapter(logger, chain.chain_symbol)
 
     while True:
         try:
-            w3 = get_evm_async_client(chain, _logger).client
-            account = w3.eth.account.from_key(EVM_WITHDRAWER_PRIVATE_KEY)
-
             dkg_party = dkg_key["party"]
             withdraws_requests = await find_withdraws_by_status(WithdrawStatus.PENDING, chain)
             if len(withdraws_requests) == 0:
@@ -153,10 +133,8 @@ async def withdraw(chain: EVMConfig):
             for withdraw_request in withdraws_requests:
                 try:
                     await process_withdraw_sa(
-                        w3=w3,
-                        account=account,
                         chain=chain,
-                        withdraw_request=EVMWithdrawRequest(**withdraw_request.model_dump(mode="json")),
+                        withdraw_request=chain.withdraw_request_type(**withdraw_request.model_dump(mode="json")),
                         dkg_party=dkg_party,
                         logger=_logger,
                     )
