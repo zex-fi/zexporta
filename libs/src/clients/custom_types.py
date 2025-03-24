@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Any, Awaitable, Callable, Hashable
+from typing import Annotated, Any, Awaitable, Callable, Hashable, Union
 
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 
@@ -11,11 +12,11 @@ type Salt = int
 type Address = Any
 
 
-def convert_int_to_str(value: int) -> str:
+def convert_int_to_str(value: Union[int, Decimal]) -> str:
     return str(value)
 
 
-type Value = Annotated[int, PlainSerializer(convert_int_to_str, when_used="json")]
+type Value = Annotated[Union[int, Decimal], PlainSerializer(convert_int_to_str, when_used="json")]
 
 
 class Transfer[_AddressT](BaseModel, ABC):

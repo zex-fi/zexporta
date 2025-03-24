@@ -130,6 +130,7 @@ DKG_JSON_PATH = os.getenv("DKG_JSON_PATH", "./zexporta/dkgs/dkgs.json")
 DKG_NAME = os.getenv("DKG_NAME", "ethereum")
 
 EVM_WITHDRAWER_PRIVATE_KEY = os.environ["EVM_WITHDRAWER_PRIVATE_KEY"]
+BTC_WITHDRAWER_PRIVATE_KEY = os.environ["BTC_WITHDRAWER_PRIVATE_KEY"]
 
 SENTRY_DNS = os.getenv("SENTRY_DNS")
 

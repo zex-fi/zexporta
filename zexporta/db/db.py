@@ -2,6 +2,9 @@ import os
 from functools import lru_cache
 
 import pymongo
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # FIXME: due to circular import, we must do this. We must move this config to configs in future
 MONGO_HOST = os.environ["MONGO_HOST"]

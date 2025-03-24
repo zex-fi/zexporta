@@ -39,9 +39,8 @@ class UTXO(BaseModel):
 
 
 class BTCWithdrawRequest(WithdrawRequest):
-    utxos: list[UTXO]
-    zellular_index: str
-    sat_per_byte: int
+    utxos: list[UTXO] = []
+    sat_per_byte: int = 0
 
 
 class BTCConfig(ChainConfig[BTCTransfer, BTCWithdrawRequest]):

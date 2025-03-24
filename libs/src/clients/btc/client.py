@@ -3,9 +3,14 @@ import os
 from functools import lru_cache
 from typing import override
 
-from bitcoinutils.keys import PublicKey
-from pyfrost.btc_utils import taproot_tweak_pubkey
-from pyfrost.crypto_utils import code_to_pub, pub_compress
+from bitcoinutils.keys import P2trAddress, PublicKey
+from bitcoinutils.script import Script
+from bitcoinutils.utils import (
+    b_to_i,
+    get_tag_hashed_merkle_root,
+    tagged_hash,
+    tweak_taproot_pubkey,
+)
 
 from clients.abstract import ChainAsyncClient
 from clients.custom_types import BlockNumber, TxHash
@@ -101,15 +106,34 @@ def get_btc_async_client(chain: BTCConfig, logger: logging.Logger | logging.Logg
     return client
 
 
+def calculate_tweak(pubkey: PublicKey, scripts: None | Script | list[Script] | list[list[Script]] | bytes) -> int:
+    key_x = pubkey.to_bytes()[:32]
+
+    if not scripts:
+        tweak = tagged_hash(key_x, "TapTweak")
+    elif isinstance(scripts, bytes):
+        tweak = tagged_hash(key_x + scripts, "TapTweak")
+    else:
+        merkle_root = get_tag_hashed_merkle_root(scripts)
+        tweak = tagged_hash(key_x + merkle_root, "TapTweak")
+
+    tweak_int = b_to_i(tweak)
+
+    return tweak_int
+
+
 def compute_btc_address(salt: int) -> Address:
-    btc_group_key_pub = int(os.environ["BTC_GROUP_KEY_PUB"])
-    public_key = code_to_pub(btc_group_key_pub)
-    public_key = pub_compress(public_key=public_key)
-    taproot_public_key, _ = taproot_tweak_pubkey(public_key, salt.to_bytes(8, byteorder="big"))
-    x_hex = hex(taproot_public_key.x)[2:].zfill(64)
-    y_hex = hex(taproot_public_key.y)[2:].zfill(64)
-    prefix = "02" if int(y_hex, 16) % 2 == 0 else "03"
-    compressed_pubkey = prefix + x_hex
-    taproot_public_key = PublicKey(compressed_pubkey)
-    taproot_address = taproot_public_key.get_taproot_address()
-    return taproot_address.to_string()
+    master_pub = PublicKey.from_hex(os.environ["BTC_GROUP_KEY_PUB"])  # hex str
+    tweak_int = calculate_tweak(master_pub, salt.to_bytes(8, byteorder="big"))
+
+    # keep x-only coordinate
+    tweak_and_odd = tweak_taproot_pubkey(master_pub.key.to_string(), tweak_int)
+    pubkey = tweak_and_odd[0][:32]
+    is_odd = tweak_and_odd[1]
+
+    pubkey_and_is_odd = pubkey.hex(), is_odd
+
+    pubkey = pubkey_and_is_odd[0]
+    is_odd = pubkey_and_is_odd[1]
+
+    return P2trAddress(witness_program=pubkey, is_odd=is_odd).to_string()
