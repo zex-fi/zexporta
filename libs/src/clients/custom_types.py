@@ -49,6 +49,7 @@ class WithdrawRequest(BaseModel):
     status: WithdrawStatus = WithdrawStatus.PENDING
     chain_symbol: str
     nonce: int
+    user_id: int  # FIXME: this should move to another class that will be in zexporta
 
 
 class ChainConfig[_TransferT: Transfer, _WithdrawT: WithdrawRequest](BaseModel, Hashable, ABC):

@@ -10,7 +10,7 @@ deposit_router = APIRouter(tags=["Deposits"], prefix="/deposits")
 
 
 @deposit_router.get("/{user_id}/{chain_symbol}")
-async def get_finalized_tx(
+async def get_user_deposits(
     user_id: UserId,
     chain_symbol: ChainSymbol,
     status: DepositStatus | None = None,
