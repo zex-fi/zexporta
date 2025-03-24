@@ -12,7 +12,7 @@ LOGGER_PATH = "/var/log/validator/validator.log"
 
 if EnvEnum.PROD == ENVIRONMENT:
     VALIDATED_IPS = {
-        "104.194.145.26": [
+        "139.59.129.48": [
             "/pyfrost/v1/dkg/round1",
             "/pyfrost/v1/dkg/round2",
             "/pyfrost/v1/dkg/round3",
