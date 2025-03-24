@@ -141,6 +141,7 @@ async def get_zex_withdraws(
                     recipient=address_type(withdraw.get("destination")),
                     chain_symbol=chain.chain_symbol,
                     status=WithdrawStatus.PENDING,
+                    user_id=withdraw.get("user_id"),
                     **base_conf,
                 )
             )
