@@ -147,16 +147,19 @@ async def withdraw(chain: EVMConfig):
 
             dkg_party = dkg_key["party"]
             withdraws_requests = await find_withdraws_by_status(chain, WithdrawStatus.PENDING)
+
             if len(withdraws_requests) == 0:
                 _logger.debug(f"No {WithdrawStatus.PENDING.value} has been found to process ...")
                 continue
             for withdraw_request in withdraws_requests:
+                if not isinstance(withdraw_request, EVMWithdrawRequest):
+                    continue
                 try:
                     await process_withdraw_sa(
                         w3=w3,
                         account=account,
                         chain=chain,
-                        withdraw_request=EVMWithdrawRequest(**withdraw_request.model_dump(mode="json")),
+                        withdraw_request=withdraw_request,
                         dkg_party=dkg_party,
                         logger=_logger,
                     )
