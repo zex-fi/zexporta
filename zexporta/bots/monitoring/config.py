@@ -40,7 +40,7 @@ MONITORING_TOKENS = [
     ),
 ]
 
-DELAY = 6 * 60 * 60
+DELAY = int(os.environ["BOT_DELAY_IN_HOUR"]) * 60 * 60
 
 TELEGRAM_BASE_URL = "https://api.telegram.org"
 TELEGRAM_BOT_INFO = os.environ["TELEGRAM_BOT_INFO"]

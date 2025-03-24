@@ -55,24 +55,24 @@ TEST_TOKENS = [
     BotToken(
         symbol="zUSDT",
         chain_symbol=ChainSymbol.SEP,  # Sepolia
-        amount=int(10000e6),  # 10000 zUSDT
+        amount=int(100e6),  # 100 zUSDT
         address=Web3.to_checksum_address("0x325CCd77e71Ac296892ed5C63bA428700ec0f868"),
         decimal=6,
     ),
-    BotToken(
-        symbol="zEIGEN",
-        chain_symbol=ChainSymbol.SEP,  # Sepolia
-        amount=int(4500e18),  # 4500 zEIGEN
-        address=Web3.to_checksum_address("0x219f1708400bE5b8cC47A56ed2f18536F5Da7EF4"),
-        decimal=18,
-    ),
-    BotToken(
-        symbol="zWBTC",
-        chain_symbol=ChainSymbol.SEP,  # Sepolia
-        amount=int(1e8),  # 1 BTC
-        address=Web3.to_checksum_address("0x9d84f6e4D734c33C2B6e7a5211780499A71aEf6A"),
-        decimal=8,
-    ),
+    # BotToken(
+    #     symbol="zEIGEN",
+    #     chain_symbol=ChainSymbol.SEP,  # Sepolia
+    #     amount=int(4500e18),  # 4500 zEIGEN
+    #     address=Web3.to_checksum_address("0x219f1708400bE5b8cC47A56ed2f18536F5Da7EF4"),
+    #     decimal=18,
+    # ),
+    # BotToken(
+    #     symbol="zWBTC",
+    #     chain_symbol=ChainSymbol.SEP,  # Sepolia
+    #     amount=int(1e8),  # 1 BTC
+    #     address=Web3.to_checksum_address("0x9d84f6e4D734c33C2B6e7a5211780499A71aEf6A"),
+    #     decimal=8,
+    # ),
 ]
 
 MONGO_HOST = os.environ["MONGO_HOST"]
