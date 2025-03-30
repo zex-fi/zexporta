@@ -1,0 +1,43 @@
+name: zex-fi/porta
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test
+        run: |
+          docker build .
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MONGO_HOST: localhost
+      MONGO_PORT: 27017
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python from .python-version
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version  # Use the Python version from the file
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.31"
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --refresh --no-editable
+
+      - name: Run tests
+        run: |
+          make unit-test

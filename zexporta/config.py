@@ -134,6 +134,6 @@ EVM_VAULT_DEPOSITOR_PRIVATE_KEY = os.environ["EVM_VAULT_DEPOSITOR_PRIVATE_KEY"]
 
 SENTRY_DNS = os.getenv("SENTRY_DNS")
 
-MONGO_HOST = os.environ["MONGO_HOST"]
-MONGO_PORT = os.environ["MONGO_PORT"]
+MONGO_HOST = os.getenv("MONGO_HOST")
+MONGO_PORT = os.getenv("MONGO_PORT")
 MONGO_DBNAME = os.environ.get("MONGO_DBNAME", "transaction_database")
