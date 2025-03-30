@@ -52,18 +52,18 @@ if ENVIRONMENT == EnvEnum.PROD:
         #     vault_address=Web3.to_checksum_address("0x72E46E170342E4879b0Ea8126389111D4275173D"),
         #     chain_id=ChainId(97),
         # ),
-        # ChainSymbol.BTC.value: BTCConfig(
-        #     private_rpc=os.environ["BTC_RPC"],
-        #     private_indexer_rpc=os.environ["BTC_INDEXER"],
-        #     chain_symbol=ChainSymbol.BTC.value,
-        #     finalize_block_count=6,
-        #     delay=10,
-        #     batch_block_size=5,
-        #     vault_address = "",
-        #     deposit_finalizer_middleware = [populate_deposits_utxos],
-        # ),
+        ChainSymbol.BTC.value: BTCConfig(
+            private_rpc=os.environ["BTC_RPC"],
+            private_indexer_rpc=os.environ["BTC_INDEXER"],
+            chain_symbol=ChainSymbol.BTC.value,
+            finalize_block_count=1,
+            delay=10,
+            batch_block_size=5,
+            vault_address="",
+            deposit_finalizer_middleware=(populate_deposits_utxos,),
+        ),
     }
-    # setup("mainnet")
+    setup("testnet")
 
 
 else:
@@ -101,18 +101,18 @@ else:
         #     vault_address=Web3.to_checksum_address("0x17a8bC4724666738387Ef5Fc59F7EF835AF60979"),
         #     chain_id=ChainId(97),
         # ),
-        ChainSymbol.BTC.value: BTCConfig(
-            private_rpc=os.environ["BTC_RPC"],
-            private_indexer_rpc=os.environ["BTC_INDEXER"],
-            chain_symbol=ChainSymbol.BTC.value,
-            finalize_block_count=1,
-            delay=60,
-            batch_block_size=5,
-            vault_address="",
-            deposit_finalizer_middleware=(populate_deposits_utxos,),
-        ),
+        # ChainSymbol.BTC.value: BTCConfig(
+        #     private_rpc=os.environ["BTC_RPC"],
+        #     private_indexer_rpc=os.environ["BTC_INDEXER"],
+        #     chain_symbol=ChainSymbol.BTC.value,
+        #     finalize_block_count=1,
+        #     delay=60,
+        #     batch_block_size=5,
+        #     vault_address="",
+        #     deposit_finalizer_middleware=(populate_deposits_utxos,),
+        # ),
     }
-    setup("testnet")
+    # setup("testnet")
 
 
 EVM_NATIVE_TOKEN_ADDRESS = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
@@ -130,6 +130,7 @@ DKG_JSON_PATH = os.getenv("DKG_JSON_PATH", "./zexporta/dkgs/dkgs.json")
 DKG_NAME = os.getenv("DKG_NAME", "ethereum")
 
 EVM_WITHDRAWER_PRIVATE_KEY = os.environ["EVM_WITHDRAWER_PRIVATE_KEY"]
+EVM_VAULT_DEPOSITOR_PRIVATE_KEY = os.environ["EVM_VAULT_DEPOSITOR_PRIVATE_KEY"]
 
 SENTRY_DNS = os.getenv("SENTRY_DNS")
 

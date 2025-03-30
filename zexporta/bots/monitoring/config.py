@@ -21,21 +21,14 @@ MONITORING_TOKENS = [
         symbol="zUSDT",
         chain_symbol=ChainSymbol.SEP,
         amount=10_000,
-        address=Web3.to_checksum_address("0x325CCd77e71Ac296892ed5C63bA428700ec0f868"),
-        decimal=6,
-    ),
-    BotToken(
-        symbol="zUSDT",
-        chain_symbol=ChainSymbol.BST,
-        amount=10_000,
-        address=Web3.to_checksum_address("0x325CCd77e71Ac296892ed5C63bA428700ec0f868"),
+        address=Web3.to_checksum_address("0x6f8cbCf0b342f6a997874F8bf1430ADE5138e15a"),
         decimal=6,
     ),
     BotToken(
         symbol="zUSDT",
         chain_symbol=ChainSymbol.HOL,
         amount=10_000,
-        address=Web3.to_checksum_address("0x325CCd77e71Ac296892ed5C63bA428700ec0f868"),
+        address=Web3.to_checksum_address("0x6f8cbCf0b342f6a997874F8bf1430ADE5138e15a"),
         decimal=6,
     ),
 ]
