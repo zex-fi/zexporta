@@ -35,7 +35,7 @@ class ZexAPIError(Exception):
 
 @asynccontextmanager
 async def get_async_client():
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         yield client
 
 

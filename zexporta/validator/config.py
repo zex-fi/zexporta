@@ -12,7 +12,7 @@ LOGGER_PATH = "/var/log/validator/validator.log"
 
 if EnvEnum.PROD == ENVIRONMENT:
     VALIDATED_IPS = {
-        "139.59.129.48": [
+        "164.90.163.234": [
             "/pyfrost/v1/dkg/round1",
             "/pyfrost/v1/dkg/round2",
             "/pyfrost/v1/dkg/round3",
@@ -45,3 +45,5 @@ else:
         ],
     }
 PRIVATE_KEY = int(os.environ["NODE_PRIVATE_KEY"])
+
+MAX_WORKERS = int(os.environ["MAX_WORKERS"])
