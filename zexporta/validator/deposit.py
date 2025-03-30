@@ -17,7 +17,7 @@ from zexporta.explorer import get_accepted_deposits
 from zexporta.utils.encoder import DEPOSIT_OPERATION, encode_zex_deposit
 from zexporta.utils.logger import ChainLoggerAdapter
 
-from .config import ZEX_ENCODE_VERSION
+from .config import MAX_WORKERS, ZEX_ENCODE_VERSION
 
 
 class NoTxHashError(Exception):
@@ -72,7 +72,7 @@ async def get_deposits(
             f"sa_finalized_block_number: {sa_finalized_block_number} \
             is not finalized in validator , finalized_block: {finalized_block_number}"
         )
-    await insert_new_address_to_db(chain)
+    await insert_new_address_to_db(chain, max_workers=MAX_WORKERS)
     accepted_addresses = await get_active_address(chain)
     transfers = await asyncio.gather(*[client.get_transfer_by_tx_hash(tx_hash) for tx_hash in txs_hash])
     flattened_transfers = []

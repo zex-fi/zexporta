@@ -62,7 +62,7 @@ async def find_deposit_by_status(
     status: DepositStatus,
     from_block: BlockNumber | None = None,
     to_block: BlockNumber | None = None,
-    limit: int | None = None,
+    limit: int = 0,
     txs_hash: list[TxHash] | None = None,
 ) -> list[Deposit[BTCTransfer]]: ...
 
@@ -73,7 +73,7 @@ async def find_deposit_by_status(
     status: DepositStatus,
     from_block: BlockNumber | None = None,
     to_block: BlockNumber | None = None,
-    limit: int | None = None,
+    limit: int = 0,
     txs_hash: list[TxHash] | None = None,
 ) -> list[Deposit[EVMTransfer]]: ...
 
@@ -84,7 +84,7 @@ async def find_deposit_by_status(
     status: DepositStatus,
     from_block: BlockNumber | None = None,
     to_block: BlockNumber | None = None,
-    limit: int | None = None,
+    limit: int = 0,
     txs_hash: list[TxHash] | None = None,
 ) -> list[Deposit[Transfer]]: ...
 
@@ -94,7 +94,7 @@ async def find_deposit_by_status(
     status: DepositStatus,
     from_block: BlockNumber | None = None,
     to_block: BlockNumber | None = None,
-    limit: int | None = None,
+    limit: int = 0,
     txs_hash: list[TxHash] | None = None,
 ) -> list[Deposit]:
     collection = get_collection(chain)
@@ -111,12 +111,10 @@ async def find_deposit_by_status(
     if txs_hash:
         query["transfer.tx_hash"] = {"$in": txs_hash}
 
-    async for record in collection.find(query, sort={"transfer.block_number": ASCENDING}):
+    async for record in collection.find(query, sort={"transfer.block_number": ASCENDING}).limit(limit):
         transfer = chain.transfer_class(**record["transfer"])
         del record["transfer"]
         res.append(Deposit(transfer=transfer, **record))
-        if limit and len(record) >= limit:
-            break
     return res
 
 

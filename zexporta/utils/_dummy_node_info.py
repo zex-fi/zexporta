@@ -14,7 +14,7 @@ dummy_node_info = {
                     "16017480246882045886082900913073979516950823832148982212683097568841948701108",
                     "14484632839742302641550896988066025133849822519077390584095458750594033151899",
                 ],
-                "socket": "http://139.59.129.48:6000",  # TODO: Read this config from environment variable
+                "socket": "http://164.90.163.234:6000",  # TODO: Read this config from environment variable
                 "stake": "2974982461847618543",
             },
             {
