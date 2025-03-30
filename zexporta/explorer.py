@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any, Callable, Coroutine
 
 from clients import ChainAsyncClient, filter_blocks
@@ -78,14 +79,18 @@ async def get_accepted_deposits(
         if (user_id := accepted_addresses.get(transfer.to)) is not None:
             decimals = await get_token_decimals(client, transfer.token)
             if await client.is_transaction_successful(transfer.tx_hash):
-                result.append(
-                    Deposit(
-                        user_id=user_id,
-                        decimals=decimals,
-                        transfer=client.chain.transfer_class.model_validate(transfer),
-                        status=deposit_status,
-                        sa_timestamp=sa_timestamp,
-                    )
+                deposit = Deposit(
+                    user_id=user_id,
+                    decimals=decimals,
+                    transfer=client.chain.transfer_class.model_validate(transfer),
+                    status=deposit_status,
+                    sa_timestamp=sa_timestamp,
                 )
+                if (
+                    transfer.token != "0x0000000000000000000000000000000000000000"
+                    and Decimal(deposit.transfer.value) / 10**decimals > 300
+                ):  # FIXME: this is just for test becareful and remove it
+                    deposit.status = DepositStatus.REJECTED
+                result.append(deposit)
 
     return result
