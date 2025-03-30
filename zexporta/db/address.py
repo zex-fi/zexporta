@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import os
+from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
+from typing import Iterable
 
 from clients import get_compute_address_function
 from pymongo import DESCENDING
@@ -46,6 +49,8 @@ class UserNotExists(Exception):
 
 
 logger = logging.getLogger(__name__)
+evm_lock = asyncio.Lock()
+btc_lock = asyncio.Lock()
 
 
 async def get_active_address(
@@ -78,28 +83,31 @@ async def insert_user_address(chain: ChainConfig, address: UserAddress):
     await collection.insert_one(address.model_dump(mode="json"))
 
 
-async def insert_many_user_address(chain: ChainConfig, users_address: list[UserAddress]):
+async def insert_many_user_address(chain: ChainConfig, users_address: Iterable[UserAddress]):
     collection = get_collection(chain=chain)
     await collection.insert_many(user_address.model_dump(mode="json") for user_address in users_address)
 
 
-def get_users_address_to_insert(
-    chain: ChainConfig, first_to_compute: UserId, last_to_compute: UserId
+def _create_user_address_for_worker(chain: ChainConfig, user_id: UserId):
+    address_function = get_compute_address_function(chain)
+    return UserAddress(user_id=user_id, address=address_function(user_id))
+
+
+async def get_users_address_to_insert(
+    chain: ChainConfig, first_to_compute: UserId, last_to_compute: UserId, *, max_workers: int | None = None
 ) -> list[UserAddress]:
-    users_address_to_insert = []
-    for user_id in range(first_to_compute, last_to_compute + 1):
-        users_address_to_insert.append(
-            UserAddress(
-                user_id=user_id,
-                address=get_compute_address_function(chain)(
-                    user_id,
-                ),
-            )
-        )
-    return users_address_to_insert
+    loop = asyncio.get_running_loop()
+    with ProcessPoolExecutor(max_workers=max_workers or os.cpu_count()) as executor:
+        tasks = [
+            loop.run_in_executor(executor, _create_user_address_for_worker, chain, user_id)
+            for user_id in range(first_to_compute, last_to_compute + 1)
+        ]
+
+        result = await asyncio.gather(*tasks)
+    return result
 
 
-async def insert_new_address_to_db(chain: ChainConfig):
+async def insert_new_address_to_db(chain: ChainConfig, *, max_workers: int | None = None):
     async with get_async_client() as client:
         try:
             last_zex_user_id = await get_last_zex_user_id(client)
@@ -109,11 +117,25 @@ async def insert_new_address_to_db(chain: ChainConfig):
 
     if last_zex_user_id is None:
         return
+    match chain:
+        case EVMConfig():
+            await evm_lock.acquire()
+        case BTCConfig():
+            await btc_lock.acquire()
     try:
-        first_id_to_compute = await get_last_user_id(chain=chain) + 1
-    except UserNotExists:
-        first_id_to_compute = 0
-    users_address_to_insert = get_users_address_to_insert(chain, first_id_to_compute, last_zex_user_id)
-    if len(users_address_to_insert) == 0:
-        return
-    await insert_many_user_address(chain, users_address=users_address_to_insert)
+        try:
+            first_id_to_compute = await get_last_user_id(chain=chain) + 1
+        except UserNotExists:
+            first_id_to_compute = 0
+        users_address_to_insert = await get_users_address_to_insert(
+            chain, first_id_to_compute, last_zex_user_id, max_workers=max_workers
+        )
+        if len(users_address_to_insert) == 0:
+            return
+        await insert_many_user_address(chain, users_address=users_address_to_insert)
+    finally:
+        match chain:
+            case EVMConfig():
+                evm_lock.release()
+            case BTCConfig():
+                btc_lock.release()

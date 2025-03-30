@@ -49,6 +49,10 @@ class ValidatorResultError(Exception):
     """Raise when validator result is not successful"""
 
 
+class TxError(Exception):
+    """Raise when tx receipt is not successful"""
+
+
 logging.config.dictConfig(get_logger_config(f"{LOGGER_PATH}/sa.log"))
 logger = logging.getLogger(__name__)
 
@@ -129,11 +133,13 @@ async def send_withdraw(
         signature,
         signature_nonce,
         signed_data,
-    ).build_transaction({"from": account.address, "nonce": nonce})
+    ).build_transaction({"from": account.address, "nonce": nonce, "gas": 150_000})
     signed_tx = account.sign_transaction(tx)
     tx_hash = await w3.eth.send_raw_transaction(signed_tx.rawTransaction)
     withdraw_request.tx_hash = tx_hash.hex()
-    await w3.eth.wait_for_transaction_receipt(tx_hash)
+    tx_receipt = await w3.eth.wait_for_transaction_receipt(tx_hash)
+    if tx_receipt["status"] != 1:
+        raise TxError(tx_receipt)
     logger.info(f"Method called successfully. Transaction Hash: {tx_hash.hex()}")
 
 
@@ -166,9 +172,10 @@ async def withdraw(chain: EVMConfig):
                 except ZexAPIError as e:
                     _logger.error(f"Error at sending deposit to Zex: {e}")
                     continue
-                except (web3.exceptions.ContractCustomError,) as e:  # noqa: B013 TODO: fix this
+                except web3.exceptions.ContractCustomError as e:
                     _logger.error(
-                        f"Contract Error, error: {e.message} , decoded_error: {decode_custom_error_data(e.message, VAULT_ABI)}"  # noqa: E501 TODO: fix this
+                        f"Contract Error, error: {e.message} \
+                          decoded_error: {decode_custom_error_data(e.message, VAULT_ABI)}"
                     )
                     withdraw_request.status = WithdrawStatus.REJECTED
                     await upsert_withdraw(withdraw_request)
@@ -190,6 +197,10 @@ async def withdraw(chain: EVMConfig):
                     _logger.error(f"Validator result is not successful, error {e}")
                 except WithdrawDifferentHashError as e:
                     _logger.error(f"data that process in zex is different from validators: {e}")
+                    withdraw_request.status = WithdrawStatus.REJECTED
+                    await upsert_withdraw(withdraw_request)
+                except TxError as e:
+                    _logger.error(f"TxError, error: {e}")
                     withdraw_request.status = WithdrawStatus.REJECTED
                     await upsert_withdraw(withdraw_request)
                 else:
