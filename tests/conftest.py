@@ -14,7 +14,7 @@ from .mock import MockChainConfig
 
 @pytest.fixture(autouse=True, scope="session")
 def setup_mongo():
-    mongo_port = int(os.environ["MONGO_PORT"])
+    mongo_port = int(os.getenv("MONGO_PORT", "27017"))
     with MongoDbContainer("mongo:7.0.15", port=mongo_port) as mongo_container:
         with patch("pymongo.AsyncMongoClient") as client:
             client.return_value = AsyncMongoClient(mongo_container.get_connection_url())
@@ -27,7 +27,7 @@ async def drop_mongo(setup_mongo):
     try:
         yield
     finally:
-        await db_connection.drop_database(os.environ["MONGO_DBNAME"])
+        await db_connection.drop_database(os.getenv("MONGO_DBNAME", "transaction_database"))
 
 
 @pytest.fixture(autouse=True, scope="session")

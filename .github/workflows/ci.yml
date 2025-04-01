@@ -1,0 +1,56 @@
+name: zex-fi/porta
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MONGO_HOST: localhost
+      MONGO_PORT: 27017
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python and Install Dependencies
+        uses: ./.github/actions/setup-dependencies
+
+      - name: Run tests
+        run: |
+          make unit-test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python and Install Dependencies
+        uses: ./.github/actions/setup-dependencies
+
+      - name: Run linting
+        run: |
+          make lint
+
+  build:
+    needs:
+      - test
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test
+        # TODO: should push on docker registry
+        run: |
+          docker build .

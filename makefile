@@ -9,6 +9,11 @@ PRE_COMMIT := $(UV) run pre-commit
 # Default target
 all: init
 
+# Linting
+lint:
+	@echo "Running linting..."
+	$(UV) run ruff check --force-exclude
+
 # Initialize the project
 init: uv-sync pre-commit-install
 
