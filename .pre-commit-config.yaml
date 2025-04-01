@@ -34,10 +34,3 @@ repos:
       - id: commitizen-branch
         stages:
           - pre-push
-  - repo: local
-    hooks:
-      - id: unit-test
-        name: unit test
-        entry: make unit-test
-        language: system
-        pass_filenames: false

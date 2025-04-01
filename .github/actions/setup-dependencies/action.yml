@@ -1,0 +1,27 @@
+name: Setup Python and Install Dependencies
+description: Set up Python and install dependencies using uv
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: .python-version
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "0.5.31"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        uv sync --frozen --refresh --no-editable
